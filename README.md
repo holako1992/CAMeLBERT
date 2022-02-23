@@ -7,12 +7,6 @@ This repo contains code for the experiments presented in our paper: [The Interpl
 This code was written for python>=3.7, pytorch 1.5.1, and transformers 3.1.0. You will also need few additional packages. Here's how you can set up the environment using conda (assuming you have conda and cuda installed):
 
 ```bash
-git clone https://github.com/CAMeL-Lab/CAMeLBERT.git
-cd CAMeLBERT
-
-conda create -n CAMeLBERT python=3.7
-conda activate CAMeLBERT
-
 pip install -r requirements.txt
 ```
 
