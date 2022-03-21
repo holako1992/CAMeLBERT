@@ -236,18 +236,6 @@ class ArabertPreprocessor:
 
             string: A preprocessed string depending on which model was selected
         """
-        if (
-            self.model_name == "bert-base-arabert"
-            or self.model_name == "bert-base-arabertv01"
-        ):
-            return self._preprocess_v1(
-                text,
-                do_farasa_tokenization=self.apply_farasa_segmentation,
-            )
-
-        if self.model_name in SECOND_GEN_MODELS:
-            return self._preprocess_v2(text)
-
         return self._preprocess_v3(text)
 
     def unpreprocess(self, text: str, desegment: bool = True) -> str:
@@ -328,12 +316,12 @@ class ArabertPreprocessor:
         if self.replace_urls_emails_mentions:
             # replace all possible URLs
             for reg in url_regexes:
-                text = re.sub(reg, " [رابط] ", text)
+                text = re.sub(reg, " ", text)
             # REplace Emails with [بريد]
             for reg in email_regexes:
-                text = re.sub(reg, " [بريد] ", text)
+                text = re.sub(reg, " ", text)
             # replace mentions with [مستخدم]
-            text = re.sub(user_mention_regex, " [مستخدم] ", text)
+            text = re.sub(user_mention_regex, " ", text)
 
         if self.remove_html_markup:
             # remove html line breaks
@@ -398,129 +386,6 @@ class ArabertPreprocessor:
             return self._farasa_segment(text)
 
         # ALl the other models dont require Farasa Segmentation
-        return text
-
-    def _preprocess_v2(self, text: str) -> str:
-        text = str(text)
-        text = html.unescape(text)
-        if self.strip_tashkeel:
-            text = araby.strip_tashkeel(text)
-        if self.strip_tatweel:
-            text = araby.strip_tatweel(text)
-
-        if self.replace_urls_emails_mentions:
-            # replace all possible URLs
-            for reg in url_regexes:
-                text = re.sub(reg, " [رابط] ", text)
-            # REplace Emails with [بريد]
-            for reg in email_regexes:
-                text = re.sub(reg, " [بريد] ", text)
-            # replace mentions with [مستخدم]
-            text = re.sub(user_mention_regex, " [مستخدم] ", text)
-
-        if self.remove_html_markup:
-            # remove html line breaks
-            text = re.sub("<br />", " ", text)
-            # remove html markup
-            text = re.sub("</?[^>]+>", " ", text)
-
-        if self.map_hindi_numbers_to_arabic:
-            text = text.translate(hindi_to_arabic_map)
-
-        # remove repeated characters >2
-        if self.remove_non_digit_repetition:
-            text = self._remove_non_digit_repetition(text)
-
-        # insert whitespace before and after all non Arabic digits or English Digits and Alphabet and the 2 brackets
-        if self.insert_white_spaces:
-            text = re.sub(
-                "([^0-9\u0621-\u063A\u0641-\u064A\u0660-\u0669a-zA-Z\[\]])",
-                r" \1 ",
-                text,
-            )
-
-            # insert whitespace between words and numbers or numbers and words
-            text = re.sub(
-                "(\d+)([\u0621-\u063A\u0641-\u064A\u0660-\u066C]+)", r" \1 \2 ", text
-            )
-            text = re.sub(
-                "([\u0621-\u063A\u0641-\u064A\u0660-\u066C]+)(\d+)", r" \1 \2 ", text
-            )
-
-        if self.replace_slash_with_dash:
-            text = text.replace("/", "-")
-
-        # remove unwanted characters
-        if self.keep_emojis:
-            emoji_regex = "".join(list(self.emoji.UNICODE_EMOJI["en"].keys()))
-            rejected_chars_regex2 = "[^%s%s]" % (chars_regex, emoji_regex)
-            text = re.sub(rejected_chars_regex2, " ", text)
-        else:
-            text = re.sub(rejected_chars_regex, " ", text)
-
-        # remove extra spaces
-        text = " ".join(text.replace("\uFE0F", "").split())
-
-        if (
-            self.model_name == "bert-base-arabertv2"
-            or self.model_name == "bert-large-arabertv2"
-        ):
-            if self.keep_emojis:
-                new_text = []
-                for word in text.split():
-                    if word in list(self.emoji.UNICODE_EMOJI["en"].keys()):
-                        new_text.append(word)
-                    else:
-                        new_text.append(self.farasa_segmenter.segment(word))
-                text = " ".join(new_text)
-            else:
-                text = self.farasa_segmenter.segment(text)
-            return self._farasa_segment(text)
-
-        # ALl the other models dont require Farasa Segmentation
-        return text
-
-    def _preprocess_v1(self, text: str, do_farasa_tokenization: bool) -> str:
-        """
-        AraBERTv1 preprocessing Function
-        """
-        text = str(text)
-        if self.strip_tashkeel:
-            text = araby.strip_tashkeel(text)
-
-        text = re.sub(r"\d+\/[ء-ي]+\/\d+\]", "", text)
-        text = re.sub("ـ", "", text)
-        text = re.sub("[«»]", ' " ', text)
-
-        if self.replace_urls_emails_mentions:
-            # replace the [رابط] token with space if you want to clean links
-            text = re.sub(regex_url_step1, "[رابط]", text)
-            text = re.sub(regex_url_step2, "[رابط]", text)
-            text = re.sub(regex_url, "[رابط]", text)
-            text = re.sub(regex_email, "[بريد]", text)
-            text = re.sub(regex_mention, "[مستخدم]", text)
-        text = re.sub("…", r"\.", text).strip()
-        text = self._remove_redundant_punct(text)
-
-        if self.replace_urls_emails_mentions:
-            text = re.sub(r"\[ رابط \]|\[ رابط\]|\[رابط \]", " [رابط] ", text)
-            text = re.sub(r"\[ بريد \]|\[ بريد\]|\[بريد \]", " [بريد] ", text)
-            text = re.sub(r"\[ مستخدم \]|\[ مستخدم\]|\[مستخدم \]", " [مستخدم] ", text)
-
-        if self.remove_non_digit_repetition:
-            text = self._remove_non_digit_repetition(text)
-
-        if self.insert_white_spaces:
-            text = re.sub(
-                "([^0-9\u0621-\u063A\u0641-\u0669\u0671-\u0673a-zA-Z\[\]])",
-                r" \1 ",
-                text,
-            )
-        if do_farasa_tokenization:
-            text = self._tokenize_arabic_words_farasa(text)
-
-        text = " ".join(text.split())
-
         return text
 
     def _farasa_segment(self, text: str) -> str:
