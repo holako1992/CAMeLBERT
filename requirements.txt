@@ -3,3 +3,5 @@ transformers[sentencepiece]
 seqeval
 scikit-learn
 camel_tools
+farasapy
+PyArabic
