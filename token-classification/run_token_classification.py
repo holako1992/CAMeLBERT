@@ -38,7 +38,8 @@ from seqeval.metrics import (
     accuracy_score as seq_accuracy_score,
     f1_score as seq_f1_score,
     precision_score as seq_precision_score,
-    recall_score as seq_recall_score
+    recall_score as seq_recall_score,
+    classification_report as seq_classification_report
 )
 from sklearn.metrics import (
     accuracy_score,
@@ -268,6 +269,7 @@ def main():
                 "precision": seq_precision_score(out_label_list, preds_list),
                 "recall": seq_recall_score(out_label_list, preds_list),
                 "f1": seq_f1_score(out_label_list, preds_list),
+                "matrix": seq_classification_report(out_label_list, preds_list)
             }
         else:
             # Flatten the preds_list and out_label_list
